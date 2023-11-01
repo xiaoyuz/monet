@@ -1,0 +1,22 @@
+[package]
+name = "monet"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "monet"
+path = "src/bin/monet.rs"
+
+[dependencies]
+candle-core = "0.3.0"
+candle-transformers = "0.3.0"
+thiserror = "1"
+anyhow = "1.0.75"
+clap = "4.4.7"
+tokenizers = "0.14.1"
+image = "0.24.7"
+tracing-chrome = "0.7.1"
+tracing-subscriber = "0.3.17"
+hf-hub = "0.3.2"
