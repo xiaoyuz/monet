@@ -39,7 +39,7 @@ impl TransformComponent {
         args.check()?;
         let dtype = if args.use_f16 { DType::F16 } else { DType::F32 };
         let sd_config = match args.sd_version {
-            StableDiffusionVersion::V1_5 => {
+            StableDiffusionVersion::V1_5 | StableDiffusionVersion::Ghibli => {
                 StableDiffusionConfig::v1_5(args.sliced_attention_size, args.height, args.width)
             }
             StableDiffusionVersion::V2_1 => {
