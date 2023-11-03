@@ -74,13 +74,17 @@ pub struct Args {
 
     /// The number of samples to generate.
     #[arg(long, default_value_t = 1)]
-    num_samples: i64,
+    pub num_samples: i64,
+
+    /// The max number of threads work in cocurrency
+    #[arg(long, default_value_t = 1)]
+    pub num_threads: usize,
 
     /// The name of the final image to generate.
     #[arg(long, value_name = "FILE", default_value = "sd_final.png")]
     final_image: String,
 
-    #[arg(long, value_enum, default_value = "v2-1")]
+    #[arg(long, value_enum, default_value = "xl")]
     sd_version: StableDiffusionVersion,
 
     /// Generate intermediary images at each step.

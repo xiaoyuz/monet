@@ -20,7 +20,6 @@ use crate::GUIDANCE_SCALE;
 pub struct TransformComponent {
     n_steps: usize,
     final_image: String,
-    num_samples: i64,
     img2img: Option<String>,
     img2img_strength: f64,
     intermediary_images: bool,
@@ -35,7 +34,7 @@ pub struct TransformComponent {
 }
 
 impl TransformComponent {
-    pub fn new(args: Args) -> Result<Self> {
+    pub fn new(args: &Args) -> Result<Self> {
         args.check()?;
         let dtype = if args.use_f16 { DType::F16 } else { DType::F32 };
         let sd_config = match args.sd_version {
@@ -78,7 +77,8 @@ impl TransformComponent {
         println!("{text_embeddings:?}");
 
         println!("Building the autoencoder.");
-        let vae_weights = ModelFile::Vae.get(args.vae_weights, args.sd_version, args.use_f16)?;
+        let vae_weights =
+            ModelFile::Vae.get(args.vae_weights.to_owned(), args.sd_version, args.use_f16)?;
         let vae = sd_config.build_vae(vae_weights, &device, dtype)?;
         let init_latent_dist = match &args.img2img {
             None => None,
@@ -89,14 +89,14 @@ impl TransformComponent {
         };
 
         println!("Building the unet.");
-        let unet_weights = ModelFile::Unet.get(args.unet_weights, args.sd_version, args.use_f16)?;
+        let unet_weights =
+            ModelFile::Unet.get(args.unet_weights.to_owned(), args.sd_version, args.use_f16)?;
         let unet = sd_config.build_unet(unet_weights, &device, 4, args.use_flash_attn, dtype)?;
 
         Ok(Self {
             n_steps: args.n_steps,
-            final_image: args.final_image,
-            num_samples: args.num_samples,
-            img2img: args.img2img,
+            final_image: args.final_image.to_owned(),
+            img2img: args.img2img.to_owned(),
             img2img_strength: args.img2img_strength,
             intermediary_images: args.intermediary_images,
             dtype,
@@ -110,39 +110,31 @@ impl TransformComponent {
         })
     }
 
-    pub fn run(&self) -> Result<()> {
+    pub async fn run(&self, sample_idx: i64) -> Result<()> {
         let n_steps = self.n_steps;
-        let num_samples = self.num_samples;
         let t_start = if self.img2img.is_some() {
             n_steps - (n_steps as f64 * self.img2img_strength) as usize
         } else {
             0
         };
 
-        for idx in 0..num_samples {
-            let timesteps = self.scheduler.timesteps();
-            let mut latents = self.init_latents(t_start, timesteps)?;
+        let timesteps = self.scheduler.timesteps();
+        let mut latents = self.init_latents(t_start, timesteps)?;
 
-            println!("starting sampling");
-            for (timestep_index, &timestep) in timesteps.iter().enumerate() {
-                if timestep_index < t_start {
-                    continue;
-                }
-                latents = self.step_process(idx, timestep_index, timestep, latents)?;
+        println!("sample {} starting sampling", sample_idx);
+        for (timestep_index, &timestep) in timesteps.iter().enumerate() {
+            if timestep_index < t_start {
+                continue;
             }
-
-            println!(
-                "Generating the final image for sample {}/{}.",
-                idx + 1,
-                num_samples
-            );
-            let image = self.vae.decode(&(&latents / 0.18215)?)?;
-            let image = ((image / 2.)? + 0.5)?.to_device(&Device::Cpu)?;
-            let image = (image.clamp(0f32, 1.)? * 255.)?.to_dtype(DType::U8)?.i(0)?;
-            let image_filename = output_filename(&self.final_image, idx + 1, num_samples, None);
-            save_image(&image, image_filename)?
+            latents = self.step_process(sample_idx, timestep_index, timestep, latents)?;
         }
-        Ok(())
+
+        println!("Generating the final image for sample {}.", sample_idx + 1);
+        let image = self.vae.decode(&(&latents / 0.18215)?)?;
+        let image = ((image / 2.)? + 0.5)?.to_device(&Device::Cpu)?;
+        let image = (image.clamp(0f32, 1.)? * 255.)?.to_dtype(DType::U8)?.i(0)?;
+        let image_filename = output_filename(&self.final_image, sample_idx + 1, None);
+        save_image(&image, image_filename)
     }
 
     fn init_latents(&self, t_start: usize, timesteps: &[usize]) -> Result<Tensor> {
@@ -196,18 +188,19 @@ impl TransformComponent {
         let dt = start_time.elapsed().as_secs_f32();
 
         let n_steps = self.n_steps;
-        println!("step {}/{n_steps} done, {:.2}s", timestep_index + 1, dt);
+        println!(
+            "Sample {}: step {}/{n_steps} done, {:.2}s",
+            idx,
+            timestep_index + 1,
+            dt
+        );
 
         if self.intermediary_images {
             let image = self.vae.decode(&(&latents / 0.18215)?)?;
             let image = ((image / 2.)? + 0.5)?.to_device(&Device::Cpu)?;
             let image = (image * 255.)?.to_dtype(DType::U8)?.i(0)?;
-            let image_filename = output_filename(
-                &self.final_image,
-                idx + 1,
-                self.num_samples,
-                Some(timestep_index + 1),
-            );
+            let image_filename =
+                output_filename(&self.final_image, idx + 1, Some(timestep_index + 1));
             save_image(&image, image_filename)?;
         }
 
