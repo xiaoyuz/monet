@@ -6,7 +6,7 @@ use image::ImageBuffer;
 
 /// Saves an image to disk using the image crate, this expects an input with shape
 /// (c, height, width).
-pub fn save_image<P: AsRef<Path>>(img: &Tensor, p: P) -> Result<()> {
+pub async fn save_image<P: AsRef<Path>>(img: &Tensor, p: P) -> Result<()> {
     let p = p.as_ref();
     let (channel, height, width) = img.dims3()?;
     if channel != 3 {

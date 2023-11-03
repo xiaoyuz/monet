@@ -121,12 +121,14 @@ impl TransformComponent {
         let timesteps = self.scheduler.timesteps();
         let mut latents = self.init_latents(t_start, timesteps)?;
 
-        println!("sample {} starting sampling", sample_idx);
+        println!("sample {} starting sampling", sample_idx + 1);
         for (timestep_index, &timestep) in timesteps.iter().enumerate() {
             if timestep_index < t_start {
                 continue;
             }
-            latents = self.step_process(sample_idx, timestep_index, timestep, latents)?;
+            latents = self
+                .step_process(sample_idx, timestep_index, timestep, latents)
+                .await?;
         }
 
         println!("Generating the final image for sample {}.", sample_idx + 1);
@@ -134,7 +136,7 @@ impl TransformComponent {
         let image = ((image / 2.)? + 0.5)?.to_device(&Device::Cpu)?;
         let image = (image.clamp(0f32, 1.)? * 255.)?.to_dtype(DType::U8)?.i(0)?;
         let image_filename = output_filename(&self.final_image, sample_idx + 1, None);
-        save_image(&image, image_filename)
+        save_image(&image, image_filename).await
     }
 
     fn init_latents(&self, t_start: usize, timesteps: &[usize]) -> Result<Tensor> {
@@ -164,7 +166,7 @@ impl TransformComponent {
         Ok(latents)
     }
 
-    fn step_process(
+    async fn step_process(
         &self,
         idx: i64,
         timestep_index: usize,
@@ -201,7 +203,7 @@ impl TransformComponent {
             let image = (image * 255.)?.to_dtype(DType::U8)?.i(0)?;
             let image_filename =
                 output_filename(&self.final_image, idx + 1, Some(timestep_index + 1));
-            save_image(&image, image_filename)?;
+            save_image(&image, image_filename).await?;
         }
 
         Ok(latents)
