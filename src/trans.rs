@@ -38,7 +38,9 @@ impl TransformComponent {
         args.check()?;
         let dtype = if args.use_f16 { DType::F16 } else { DType::F32 };
         let sd_config = match args.sd_version {
-            StableDiffusionVersion::V1_5 | StableDiffusionVersion::Ghibli => {
+            StableDiffusionVersion::V1_5
+            | StableDiffusionVersion::Ghibli
+            | StableDiffusionVersion::DlPhoto => {
                 StableDiffusionConfig::v1_5(args.sliced_attention_size, args.height, args.width)
             }
             StableDiffusionVersion::V2_1 => {
@@ -192,7 +194,7 @@ impl TransformComponent {
         let n_steps = self.n_steps;
         println!(
             "Sample {}: step {}/{n_steps} done, {:.2}s",
-            idx,
+            idx + 1,
             timestep_index + 1,
             dt
         );

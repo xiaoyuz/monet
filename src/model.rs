@@ -10,6 +10,7 @@ pub enum StableDiffusionVersion {
     V2_1,
     Xl,
     Ghibli,
+    DlPhoto,
 }
 
 impl StableDiffusionVersion {
@@ -19,12 +20,13 @@ impl StableDiffusionVersion {
             Self::V2_1 => "stabilityai/stable-diffusion-2-1",
             Self::V1_5 => "runwayml/stable-diffusion-v1-5",
             Self::Ghibli => "nitrosocke/Ghibli-Diffusion",
+            Self::DlPhoto => "dreamlike-art/dreamlike-photoreal-2.0",
         }
     }
 
     pub fn unet_file(&self, use_f16: bool) -> &'static str {
         match self {
-            Self::V1_5 | Self::V2_1 | Self::Xl | Self::Ghibli => {
+            Self::V1_5 | Self::V2_1 | Self::Xl | Self::Ghibli | Self::DlPhoto => {
                 if use_f16 {
                     "unet/diffusion_pytorch_model.fp16.safetensors"
                 } else {
@@ -36,7 +38,7 @@ impl StableDiffusionVersion {
 
     pub fn vae_file(&self, use_f16: bool) -> &'static str {
         match self {
-            Self::V1_5 | Self::V2_1 | Self::Xl | Self::Ghibli => {
+            Self::V1_5 | Self::V2_1 | Self::Xl | Self::Ghibli | Self::DlPhoto => {
                 if use_f16 {
                     "vae/diffusion_pytorch_model.fp16.safetensors"
                 } else {
@@ -48,7 +50,7 @@ impl StableDiffusionVersion {
 
     pub fn clip_file(&self, use_f16: bool) -> &'static str {
         match self {
-            Self::V1_5 | Self::V2_1 | Self::Xl | Self::Ghibli => {
+            Self::V1_5 | Self::V2_1 | Self::Xl | Self::Ghibli | Self::DlPhoto => {
                 if use_f16 {
                     "text_encoder/model.fp16.safetensors"
                 } else {
@@ -60,7 +62,7 @@ impl StableDiffusionVersion {
 
     pub fn clip2_file(&self, use_f16: bool) -> &'static str {
         match self {
-            Self::V1_5 | Self::V2_1 | Self::Xl | Self::Ghibli => {
+            Self::V1_5 | Self::V2_1 | Self::Xl | Self::Ghibli | Self::DlPhoto => {
                 if use_f16 {
                     "text_encoder_2/model.fp16.safetensors"
                 } else {
@@ -96,7 +98,8 @@ impl ModelFile {
                         let tokenizer_repo = match version {
                             StableDiffusionVersion::V1_5
                             | StableDiffusionVersion::V2_1
-                            | StableDiffusionVersion::Ghibli => "openai/clip-vit-base-patch32",
+                            | StableDiffusionVersion::Ghibli
+                            | StableDiffusionVersion::DlPhoto => "openai/clip-vit-base-patch32",
                             StableDiffusionVersion::Xl => {
                                 // This seems similar to the patch32 version except some very small
                                 // difference in the split regex.
